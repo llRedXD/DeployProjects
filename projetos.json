@@ -1,0 +1,20 @@
+{
+  "Backend Django2": {
+    "projeto": "SmyDjangoV2",
+    "path": "/home/red/workspace/SmyBackDjango",
+    "app": "/project",
+    "requirements": "requirements.txt",
+    ".env": ".env",
+    "os": "Linux",
+    "linguagem": "Python"
+  },
+  "Controle Uni": {
+    "projeto": "SmyControleUni",
+    "path": "C:/Users/gabriel.oliveira/Desktop/Dev/SmyControleUni/SmyControleUni",
+    "app": "/bin/Release/net6.0/publish",
+    "requirements": "",
+    ".env": "",
+    "os": "Windows",
+    "linguagem": "C#"
+  }
+}
