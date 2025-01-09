@@ -101,6 +101,153 @@ def selecionar_ambiente():
             print(f"Ocorreu um erro inesperado: {e}")
 
 
+def criar_stash(caminho_pasta, os):
+    try:
+        comando = []
+        if os == "Linux":
+            comando = [
+                "wsl",
+                "cd",
+                caminho_pasta,
+                "&&",
+                "git",
+                "stash",
+                "save",
+                "--include-untracked",
+            ]
+        elif os == "Windows":
+            comando = [
+                "cmd",
+                "/c",
+                f"cd {caminho_pasta} && git stash save --include-untracked",
+            ]
+        else:
+            return None
+
+        resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+        print("Stash criado com sucesso.")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao executar comando: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
+def mudar_commit(caminho_pasta, commit, os):
+    try:
+        comando = []
+        if os == "Linux":
+            comando = [
+                "wsl",
+                "cd",
+                caminho_pasta,
+                "&&",
+                "git",
+                "checkout",
+                commit,
+            ]
+        elif os == "Windows":
+            comando = [
+                "cmd",
+                "/c",
+                f"cd {caminho_pasta} && git checkout {commit}",
+            ]
+        else:
+            return None
+
+        resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+        print("Commit alterado com sucesso.")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao executar comando: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
+def listar_commits(caminho_pasta, os):
+    try:
+        comando = []
+        if os == "Linux":
+            comando = [
+                "wsl",
+                "cd",
+                caminho_pasta,
+                "&&",
+                "git",
+                "log",
+                "--pretty=format:%h %s",
+            ]
+        elif os == "Windows":
+            comando = [
+                "cmd",
+                "/c",
+                f"cd {caminho_pasta} && git log --pretty=format:%h %s",
+            ]
+        else:
+            return None
+
+        resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+        output = resultado.stdout.strip().encode("latin1").decode("utf-8")
+        if output:
+            print("Commits no repositório:")
+            commits = output.split("\n")
+            commits.reverse()
+            ultimos_commits = commits[-10:]
+            ultimos_commits.reverse()
+            for i, commit in enumerate(ultimos_commits, start=1):
+                print(f"{i}. {commit}")
+            versao_escolhida = int(input("Digite o número do commit desejado: "))
+            mudar_commit(
+                caminho_pasta, ultimos_commits[versao_escolhida - 1].split()[0], os
+            )
+        else:
+            print("Não há commits no repositório.")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao executar comando: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
+def selecionar_versao(caminho_pasta, os):
+    try:
+        comando = []
+
+        if os == "Linux":
+            comando = [
+                "wsl",
+                "cd",
+                caminho_pasta,
+                "&&",
+                "git",
+                "status",
+                "--porcelain",
+                "--untracked-files=no",
+            ]
+        elif os == "Windows":
+            comando = [
+                "cmd",
+                "/c",
+                f"cd {caminho_pasta} && git status --porcelain --untracked-files=no",
+            ]
+        else:
+            return None
+
+        resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+        output = resultado.stdout.strip()
+        if output:
+            print("Existem mudanças não comentadas no repositório.")
+            salvar_stash = input(
+                "Deseja salvar as mudanças em um stash? (s/n) "
+            ).lower()
+            if salvar_stash == "s":
+                criar_stash(caminho_pasta, os)
+        usar_commit = input("Deseja usar um commit específico? (s/n) ").lower()
+        if usar_commit == "s":
+            listar_commits(caminho_pasta, os)
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao executar comando: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
 def fazer_deploy(projetos):
     """
     Realiza o deploy de um projeto selecionado.
@@ -125,6 +272,9 @@ def fazer_deploy(projetos):
         caminho_os = projeto["os"]
         linguagem = projeto["linguagem"]
 
+        branch = obter_branch_git(caminho, caminho_os)
+        selecionar_versao(caminho, caminho_os)
+
         # Se a linguagem for C#, cria o publish
         if linguagem == "C#":
             criar_publish(caminho, ambiente_escolhido)
@@ -141,6 +291,9 @@ def fazer_deploy(projetos):
             caminho_os,
             linguagem,
         )
+
+        voltar_para_branch(caminho, branch, caminho_os)
+
     except KeyError as e:
         print(
             f"Erro: Chave {e} não encontrada no projeto. Verifique se todas as chaves necessárias estão presentes."
@@ -307,6 +460,37 @@ def upar_projeto(caminho, nome_projeto, app, ambiente, os, linguagem):
             check=True,
         )
         print("Deploy realizado com sucesso!")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao executar comando: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
+def voltar_para_branch(caminho_pasta, branch, os):
+    try:
+        comando = []
+        if os == "Linux":
+            comando = [
+                "wsl",
+                "cd",
+                caminho_pasta,
+                "&&",
+                "git",
+                "checkout",
+                branch,
+            ]
+        elif os == "Windows":
+            comando = [
+                "cmd",
+                "/c",
+                f"cd {caminho_pasta} && git checkout {branch}",
+            ]
+        else:
+            return None
+
+        resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+        if resultado.returncode == 0:
+            print(f"Branch {branch} restaurada com sucesso.")
     except subprocess.CalledProcessError as e:
         print(f"Erro ao executar comando: {e}")
     except Exception as e:
