@@ -165,6 +165,7 @@ def mudar_commit(caminho_pasta, commit, os):
 def listar_commits(caminho_pasta, os):
     try:
         comando = []
+
         if os == "Linux":
             comando = [
                 "wsl",
@@ -177,9 +178,9 @@ def listar_commits(caminho_pasta, os):
             ]
         elif os == "Windows":
             comando = [
-                "cmd",
-                "/c",
-                f"cd {caminho_pasta} && git log --pretty=format:%h %s",
+                "powershell",
+                "-Command",
+                f"cd {caminho_pasta}; git log --pretty=format:'%h %s'",
             ]
         else:
             return None
