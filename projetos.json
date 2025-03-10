@@ -16,5 +16,23 @@
     ".env": "",
     "os": "Windows",
     "linguagem": "C#"
+  },
+  "Smy Intranet": {
+    "projeto": "React",
+    "path": "C:/Users/henrique.luna/Desktop/smy_intranet/dist",
+    "app": "",
+    "requirements": "",
+    ".env": "",
+    "os": "Windows",
+    "linguagem": "React"
+  },
+  "Back-End-Django": {
+    "projeto": "IntraneBackend",
+    "path": "/home/red/workspace/back-end-django",
+    "app": "/smy",
+    "requirements": "requirements.txt",
+    ".env": ".env",
+    "os": "Linux",
+    "linguagem": "Python"
   }
 }

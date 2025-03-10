@@ -327,6 +327,20 @@ def criar_publish(caminho, ambiente):
         print(f"Ocorreu um erro inesperado: {e}")
 
 
+def criar_build(caminho, ambiente):
+    try:
+        # Executa o comando de publish usando PowerShell
+        subprocess.run(
+            ["powershell", "cd", caminho, ";", "npm", "run", "build"],
+            check=True,
+        )
+        print(f"Publish criado com sucesso para o ambiente {ambiente}!")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao criar publish: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro inesperado: {e}")
+
+
 def criar_backup(nome_projeto, app, ambiente, linguagem):
     """
     Cria um backup do projeto especificado.
@@ -435,7 +449,6 @@ def upar_projeto(caminho, nome_projeto, app, ambiente, os, linguagem):
         # Ajusta o caminho do app se a linguagem for C#
         if linguagem == "C#":
             app = ""
-
         if ambiente == "dev":
             caminho_deploy = caminho_dev
         elif ambiente == "prod":
