@@ -1,10 +1,14 @@
 import tkinter as tk
 from tkinter import filedialog
 
+from deployC import Deploy
+
 
 class Menu:
     def __init__(self):
         self.root = tk.Tk()
+
+        self.deploy = Deploy()
 
         # Configurações da janela
         self.root.title("Menu")
@@ -45,13 +49,14 @@ class Menu:
         language_menu.pack()
 
     def open_folder(self):
-        caminho_base = (
-            self.caminho_dev
-            if self.environment_var.get() == "Dev"
-            else self.caminho_prod
-        )
+        # Alimentar o objeto Deploy com as informações selecionadas
+        self.deploy.definir_caminho_base(self.environment_var.get())
+        self.deploy.os = self.os_var.get()
+        self.deploy.language = self.language_var.get()
+
+        # Consultar pasta do projeto.
         folder_path = filedialog.askdirectory(
-            initialdir=caminho_base,
+            initialdir=self.deploy.caminho_base,
             title="Selecione uma pasta",
         )
         # Faça algo com o caminho da pasta selecionada
