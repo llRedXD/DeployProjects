@@ -12,20 +12,25 @@ class Deploy:
         self.caminho_prod = r"\\smyapp2\d$\inetpub\wwwroot\\"
         self.caminho_prod_bkp = r"\\smyapp2\\d$\\bkp\\"
         self.caminho_temp = "./temp/"
-        self.caminho_base = ""
-        self.caminho_bkp = ""
+        self.base_path = ""
+        self.backup_path = ""
         self.os = ""
         self.language = ""
-        self.caminho_projeto = ""
-        self.projeto = ""
+        self.project_path = ""
+        self.project = ""
 
-    def definir_caminho_base(self, ambiente):
+    def set_base_path(self, ambiente):
         if ambiente == "Dev":
-            self.caminho_base = self.caminho_dev
-            self.caminho_bkp = self.caminho_dev_bkp
+            self.base_path = self.caminho_dev
+            self.backup_path = self.caminho_dev_bkp
         else:
-            self.caminho_base = self.caminho_prod
-            self.caminho_bkp = self.caminho_prod_bkp
+            self.base_path = self.caminho_prod
+            self.backup_path = self.caminho_prod_bkp
+
+    def if_linux(self, command):
+        if self.os == "Linux":
+            return ["wsl", command]
+        return command
 
     # Python
     def get_name_project(self, path):
@@ -38,58 +43,86 @@ class Deploy:
                     )
                     if match:
                         settings_module = match.group(1)
-                        self.projeto = settings_module.split(".")[0]
+                        self.project = settings_module.split(".")[0]
 
     def get_projeto_python(self):
-        manage_path = os.path.join(self.caminho_projeto, "manage.py")
+        manage_path = os.path.join(self.project_path, "manage.py")
         self.get_name_project(manage_path)
-        self.caminho_projeto = os.path.join(self.caminho_projeto, self.projeto)
 
     # React
     def get_projeto_react(self):
-        build_path = os.path.join(self.caminho_projeto, "build")
-        print(self.caminho_projeto)
+        build_path = os.path.join(self.project_path, "build")
+        print(self.project_path.replace("\\\\wsl.localhost/Ubuntu-22.04", ""))
         if not os.path.exists(build_path):
-            subprocess.run(["powershell", "cd", self.caminho_projeto])
-            subprocess.run(
-                [("wsl" if self.os == "Linux" else ""), "npm", "run", "build"]
-            )
-        self.caminho_projeto = build_path
+            if self.os == "Linux":
+                initial_command = [
+                    "wsl",
+                    "cd",
+                    self.project_path.replace("\\\\wsl.localhost/Ubuntu-22.04", ""),
+                ]
+                subprocess.run(initial_command)
+            else:
+                subprocess.run(["powershell", "cd", self.project_path])
+                subprocess.run(
+                    [("wsl" if self.os == "Linux" else ""), "npm", "run", "build"]
+                )
+        self.project_path = build_path
 
-    def criar_backup(self):
+    def create_backup(self):
         print("Criando backup")
-        if self.language == "Python":
-            self.get_projeto_python()
-        if self.language == "React":
-            self.get_projeto_react()
+
+        exclude_dir = [
+            ".venv",
+            "venv",
+            ".git",
+            ".vscode",
+            "django-cache",
+            "logs",
+        ]
+
+        exclude_archive = [
+            "example.env",
+            ".gitignore",
+            "README.md",
+        ]
+
+        backup_directory = (
+            self.backup_path
+            + self.base_path.split("\\")[-1]
+            + f"_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
+        )
+
         subprocess.run(
             [
-                "powershell",
-                "cp",
-                "-r",
-                self.caminho_projeto,
-                self.caminho_bkp
-                + self.caminho_base.split("\\")[-1]
-                + f"_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "robocopy",
+                self.base_path,
+                backup_directory,
+                "/E",  # Copiar subdiretórios, incluindo vazios
+                "/XD",
+                *exclude_dir,  # Excluir diretório
+                "/XF",
+                *exclude_archive,  # Excluir arquivo
             ],
+            check=True,
         )
 
     def deploy(self):
         print(self.language)
-        self.criar_backup()
+        self.create_backup()
 
 
 if __name__ == "__main__":
     deploy = Deploy()
-    deploy.definir_caminho_base("Dev")
-    deploy.language = "React"
+    deploy.set_base_path("Dev")
+    deploy.language = "Python"
     deploy.os = "Linux"
-    deploy.caminho_projeto = (
+    deploy.project_path = (
         "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/smy_intranet"
     )
     # deploy.caminho_projeto = (
     #     "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/back-end-django"
     # )
     # deploy.caminho_base = "\\\\smydev\d$\inetpub\wwwroot\SmyBackDjango"
-    deploy.caminho_base = "\\\\smydev\d$\inetpub\wwwroot\IntranetFrontend"
+    # deploy.caminho_base = "\\\\smydev\d$\inetpub\wwwroot\IntranetFrontend"
+    deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\IntranetBackend"
     deploy.deploy()
