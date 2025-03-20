@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
+import deploy
 from deployC import Deploy
 
 
@@ -16,16 +17,16 @@ class Menu:
         self.root.geometry("600x400")
 
         self.environment_var = tk.StringVar()
-        self.environment_var.set("Dev")  # Set default value to "Dev"
+        self.environment_var.set("Selecione o Ambiente")  # Set default value to "Dev"
         self.environment_options = ["Dev", "Prod"]
 
         self.os_var = tk.StringVar()
-        self.os_var.set("Windows")  # Set default value to "Windows"
+        self.os_var.set("Selecione o OS")  # Set default value to "Windows"
         self.os_options = ["Windows", "Linux"]
 
         self.language_var = tk.StringVar()
-        self.language_var.set("Python")  # Set default value to "Python"
-        self.language_options = ["Python", ".Net", "React"]
+        self.language_var.set("Selecione a Linguagem")  # Set default value to "Python"
+        self.language_options = ["Python", "React"]
 
         self.caminho_projeto = tk.StringVar()
         self.caminho_projeto.set("")
@@ -58,8 +59,8 @@ class Menu:
             desktop_path = os.path.join(
                 os.path.join(os.environ["USERPROFILE"]), "Desktop"
             )
-            self.deploy.caminho_projeto = filedialog.askopenfilename(
-                initialdir=desktop_path, title="Selecione um arquivo"
+            self.deploy.project_path = filedialog.askdirectory(
+                initialdir=desktop_path, title="Selecione uma pasta"
             )
         else:
             path_linux = "\\\\wsl.localhost/Ubuntu-22.04/home/"
@@ -67,26 +68,34 @@ class Menu:
             folders = os.listdir(path_linux)
             if len(folders) == 1:
                 path_linux = os.path.join(path_linux, folders[0])
-            self.deploy.caminho_projeto = filedialog.askdirectory(
+            self.deploy.project_path = filedialog.askdirectory(
                 initialdir=path_linux, title="Selecione uma pasta"
             )
 
-        self.caminho_projeto.set(self.deploy.caminho_projeto)
+        self.caminho_projeto.set(self.deploy.project_path)
 
     def open_folder_deploy(self):
         # Alimentar o objeto Deploy com as informações selecionadas
-        self.deploy.definir_caminho_base(self.environment_var.get())
+        self.deploy.set_base_path(self.environment_var.get())
         self.deploy.language = self.language_var.get()
 
         # Consultar pasta do projeto.
         folder_path = filedialog.askdirectory(
-            initialdir=self.deploy.caminho_base,
+            initialdir=self.deploy.base_path,
             title="Selecione uma pasta",
         )
+        self.deploy.deploy_path = folder_path
         # Faça algo com o caminho da pasta selecionada
         self.caminho_deploy.set(folder_path)
-        if self.deploy.caminho_projeto:
+        if self.deploy.project_path:
             self.button_deploy.config(state=tk.NORMAL)
+
+    def deploy_action(self):
+        print("Deploying...")
+        self.deploy.set_base_path(self.environment_var.get())
+        self.deploy.os = self.os_var.get()
+        self.deploy.language = self.language_var.get()
+        self.deploy.deploy()
 
     def create_menu(self):
         self.select_environment()
@@ -116,7 +125,7 @@ class Menu:
         button_path_deploy.pack()
 
         self.button_deploy = tk.Button(
-            self.root, text="Deploy", command=self.deploy.deploy
+            self.root, text="Deploy", command=self.deploy_action
         )
         self.button_deploy.pack()
         self.button_deploy.config(state=tk.DISABLED)
