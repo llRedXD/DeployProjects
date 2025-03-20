@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import re
 import subprocess
-from unittest import result
+import shutil
 
 
 class Deploy:
@@ -11,13 +11,28 @@ class Deploy:
         self.caminho_dev_bkp = r"\\smydev\\d$\\bkp\\"
         self.caminho_prod = r"\\smyapp2\d$\inetpub\wwwroot\\"
         self.caminho_prod_bkp = r"\\smyapp2\\d$\\bkp\\"
-        self.caminho_temp = "./temp/"
+        self.temp_dir = "./temp/"
         self.base_path = ""
         self.backup_path = ""
         self.os = ""
         self.language = ""
         self.project_path = ""
         self.project = ""
+        self.exclude_dir = [
+            ".venv",
+            "venv",
+            ".git",
+            ".vscode",
+            "django-cache",
+            "logs",
+            "node_modules",
+        ]
+
+        self.exclude_file = [
+            "example.env",
+            ".gitignore",
+            "README.md",
+        ]
 
     def set_base_path(self, ambiente):
         if ambiente == "Dev":
@@ -50,79 +65,141 @@ class Deploy:
         self.get_name_project(manage_path)
 
     # React
-    def get_projeto_react(self):
-        build_path = os.path.join(self.project_path, "build")
-        print(self.project_path.replace("\\\\wsl.localhost/Ubuntu-22.04", ""))
-        if not os.path.exists(build_path):
+    def create_build_react(self):
+        try:
             if self.os == "Linux":
-                initial_command = [
-                    "wsl",
-                    "cd",
-                    self.project_path.replace("\\\\wsl.localhost/Ubuntu-22.04", ""),
-                ]
-                subprocess.run(initial_command)
-            else:
-                subprocess.run(["powershell", "cd", self.project_path])
+                path = self.temp_dir
+
                 subprocess.run(
-                    [("wsl" if self.os == "Linux" else ""), "npm", "run", "build"]
+                    ["powershell", "-Command", "npm install"],
+                    check=True,
+                    cwd=path,
                 )
-        self.project_path = build_path
 
+            if self.os == "Windows":
+                path = self.project_path
+
+            subprocess.run(
+                ["powershell", "-Command", "npm run build"],
+                cwd=path,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Erro ao executar o comando: {e}")
+            print(f"Saída do erro: {e.stderr}")
+        except Exception as e:
+            print(f"Ocorreu um erro: {e}")
+
+    # Deploy
     def create_backup(self):
-        print("Criando backup")
+        try:
+            print("Criando backup")
 
-        exclude_dir = [
-            ".venv",
-            "venv",
-            ".git",
-            ".vscode",
-            "django-cache",
-            "logs",
-        ]
+            backup_directory = (
+                self.backup_path
+                + self.base_path.split("\\")[-1]
+                + f"_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
+            )
 
-        exclude_archive = [
-            "example.env",
-            ".gitignore",
-            "README.md",
-        ]
+            subprocess.run(
+                [
+                    "robocopy",
+                    self.base_path,
+                    backup_directory,
+                    "/E",  # Copiar subdiretórios, incluindo vazios
+                    "/XD",
+                    *self.exclude_dir,  # Excluir diretório
+                    "/XF",
+                    *self.exclude_file,  # Excluir arquivo
+                ],
+                check=True,
+            )
+        except Exception as e:
+            print(f"Erro ao criar backup: {e}")
 
-        backup_directory = (
-            self.backup_path
-            + self.base_path.split("\\")[-1]
-            + f"_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
-        )
+    def create_temp(self):
+        if not os.path.exists(self.temp_dir):
+            os.makedirs(self.temp_dir)
+        else:
+            shutil.rmtree(self.temp_dir)
+            os.makedirs(self.temp_dir)
 
-        subprocess.run(
-            [
-                "robocopy",
-                self.base_path,
-                backup_directory,
-                "/E",  # Copiar subdiretórios, incluindo vazios
-                "/XD",
-                *exclude_dir,  # Excluir diretório
-                "/XF",
-                *exclude_archive,  # Excluir arquivo
-            ],
-            check=True,
-        )
+    def import_project_to_temp(self):
+        try:
+            self.create_temp()
+            print("Importando projeto para temp")
+            if self.os == "Windows":
+                if self.language == "React":
+                    self.create_build_react()
+
+            subprocess.run(
+                [
+                    "robocopy",
+                    self.project_path,
+                    self.temp_dir,
+                    "/E",  # Copiar subdiretórios, incluindo vazios
+                    "/XD",
+                    *self.exclude_dir,  # Excluir diretório
+                    "/XF",
+                    *self.exclude_file,  # Excluir arquivo
+                ],
+                check=True,
+            )
+
+        except Exception as e:
+            print(e)
+
+    def up_project_to_base(self):
+        try:
+            print("Subindo projeto para base")
+            if self.language == "React":
+                if self.os == "Linux":
+                    self.create_build_react()
+                self.project = "dist"
+
+            path_project_deploy = os.path.join(self.temp_dir, self.project)
+
+            subprocess.run(
+                [
+                    "robocopy",
+                    path_project_deploy,
+                    self.base_path,
+                    "/E",  # Copiar subdiretórios, incluindo vazios
+                    "/XD",
+                    *self.exclude_dir,  # Excluir diretório
+                    "/XF",
+                    *self.exclude_file,  # Excluir arquivo
+                ],
+                check=True,
+            )
+        except Exception as e:
+            print(f"Erro ao subir projeto para base: {e}")
 
     def deploy(self):
         print(self.language)
-        self.create_backup()
+        self.import_project_to_temp()
+        # self.create_backup()
+        self.up_project_to_base()
+        print("Deploy")
 
 
 if __name__ == "__main__":
     deploy = Deploy()
     deploy.set_base_path("Dev")
-    deploy.language = "Python"
+    deploy.language = "React"
     deploy.os = "Linux"
+    # deploy.os = "Windows"
+    # deploy.project_path = r"C:\Users\gabriel.oliveira\Desktop\Dev\IntranetFrontend"
     deploy.project_path = (
         "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/smy_intranet"
     )
-    # deploy.caminho_projeto = (
+    # deploy.project_path = (
+    #     r"C:\Users\gabriel.oliveira\Desktop\PlayGround\Projetos\SmyFlv"
+    # )
+    # deploy.project_path = (
     #     "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/back-end-django"
     # )
-    # deploy.caminho_base = "\\\\smydev\d$\inetpub\wwwroot\SmyBackDjango"
-    # deploy.caminho_base = "\\\\smydev\d$\inetpub\wwwroot\IntranetFrontend"
-    deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\IntranetBackend"
+    # deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\SmyBackDjango"
+    deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\TEste123"
+    # deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\IntranetBackend"
     deploy.deploy()
