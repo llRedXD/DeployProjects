@@ -42,28 +42,6 @@ class Deploy:
             self.base_path = self.caminho_prod
             self.backup_path = self.caminho_prod_bkp
 
-    def if_linux(self, command):
-        if self.os == "Linux":
-            return ["wsl", command]
-        return command
-
-    # Python
-    def get_name_project(self, path):
-        with open(path, "r") as file:
-            for line in file:
-                if 'os.environ.setdefault("DJANGO_SETTINGS_MODULE"' in line:
-                    match = re.search(
-                        r'os\.environ\.setdefault\("DJANGO_SETTINGS_MODULE",\s*"(.*?)"\)',
-                        line,
-                    )
-                    if match:
-                        settings_module = match.group(1)
-                        self.project = settings_module.split(".")[0]
-
-    def get_projeto_python(self):
-        manage_path = os.path.join(self.project_path, "manage.py")
-        self.get_name_project(manage_path)
-
     # React
     def create_build_react(self):
         try:
@@ -186,19 +164,19 @@ class Deploy:
 if __name__ == "__main__":
     deploy = Deploy()
     deploy.set_base_path("Dev")
-    deploy.language = "React"
+    deploy.language = "Python"
     deploy.os = "Linux"
     # deploy.os = "Windows"
     # deploy.project_path = r"C:\Users\gabriel.oliveira\Desktop\Dev\IntranetFrontend"
-    deploy.project_path = (
-        "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/smy_intranet"
-    )
+    # deploy.project_path = (
+    #     "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/smy_intranet"
+    # )
     # deploy.project_path = (
     #     r"C:\Users\gabriel.oliveira\Desktop\PlayGround\Projetos\SmyFlv"
     # )
-    # deploy.project_path = (
-    #     "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/back-end-django"
-    # )
+    deploy.project_path = (
+        "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/back-end-django"
+    )
     # deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\SmyBackDjango"
     deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\TEste123"
     # deploy.base_path = "\\\\smydev\d$\inetpub\wwwroot\IntranetBackend"
