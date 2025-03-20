@@ -2,8 +2,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-import deploy
-from deployC import Deploy
+from deploy import Deploy
 
 
 class Menu:
