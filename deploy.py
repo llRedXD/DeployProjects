@@ -76,7 +76,7 @@ class Deploy:
 
             backup_directory = (
                 self.backup_path
-                + self.deploy_path.split("\\")[-1]
+                + self.deploy_path.split("/")[-1]
                 + f"_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
             )
 
