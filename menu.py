@@ -28,7 +28,7 @@ class Menu:
 
         self.language_var = tk.StringVar()
         self.language_var.set("Selecione a Linguagem")  # Set default value to "Python"
-        self.language_options = ["Python", "React"]
+        self.language_options = ["Python", "React", "C#"]
 
         self.caminho_projeto = tk.StringVar()
         self.caminho_projeto.set("")

@@ -27,12 +27,17 @@ class Deploy:
             "django-cache",
             "logs",
             "node_modules",
+            "__pycache__",
         ]
 
         self.exclude_file = [
             "example.env",
             ".gitignore",
+            ".env",
             "README.md",
+            "*.pyc",
+            "*.sqlite3",
+            "*.djcache",
         ]
 
     def set_base_path(self, ambiente):
@@ -69,6 +74,49 @@ class Deploy:
         except Exception as e:
             print(f"Ocorreu um erro: {e}")
 
+    # C#
+    def create_publish_csharp(self):
+        try:
+            path = self.project_path
+            print("Criando publish")
+
+            subprocess.run(
+                ["powershell", "-Command", "dotnet publish", "-c", "Release"],
+                cwd=path,
+                check=True,
+            )
+
+        except subprocess.CalledProcessError as e:
+            print(f"Erro ao executar o comando: {e}")
+            print(f"Saída do erro: {e.stderr}")
+        except Exception as e:
+            print(f"Ocorreu um erro ao criar o publish: {e}")
+
+    def get_path_publish_csharp(self):
+        try:
+            folder_path = os.path.join(
+                self.project_path,
+                f"{self.project_path.split('/')[-1]}/bin/Release",
+            )
+
+            contents = os.listdir(folder_path)
+
+            directories = [
+                d for d in contents if os.path.isdir(os.path.join(folder_path, d))
+            ]
+
+            if len(directories) == 1:
+                unique_folder_name = directories[0]
+            else:
+                print("Não há exatamente uma pasta dentro do diretório especificado.")
+
+            path = os.path.join(folder_path, rf"{unique_folder_name}\publish")
+
+            return path
+
+        except Exception as e:
+            print(f"Erro ao buscar o caminho do publish: {e}")
+
     # Deploy
     def create_backup(self):
         try:
@@ -79,6 +127,7 @@ class Deploy:
                 + self.deploy_path.split("/")[-1]
                 + f"_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
             )
+            print(backup_directory)
 
             subprocess.run(
                 [
@@ -110,6 +159,9 @@ class Deploy:
             if self.os == "Windows":
                 if self.language == "React":
                     self.create_build_react()
+                if self.language == "C#":
+                    self.create_publish_csharp()
+                    self.project_path = self.get_path_publish_csharp()
 
             subprocess.run(
                 [
@@ -160,16 +212,15 @@ class Deploy:
         self.import_project_to_temp()
         self.create_backup()
         self.up_project_to_base()
-        print("Deploy Finalizado")
 
 
 if __name__ == "__main__":
     deploy = Deploy()
     deploy.set_base_path("Dev")
-    deploy.language = "Python"
-    deploy.os = "Linux"
+    deploy.language = "C#"
+    deploy.os = "Windows"
     deploy.project_path = (
-        "\\\\wsl.localhost/Ubuntu-22.04/home/red/workspace/back-end-django"
+        r"C:\Users\gabriel.oliveira\Desktop\PlayGround\Projetos\Smy_EU"
     )
-    deploy.deploy_path = "\\\\smydev\d$\inetpub\wwwroot\TEste123"
+    deploy.deploy_path = "\\\\smydev\d$\inetpub\wwwroot\SmyEu"
     deploy.deploy()
