@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
@@ -33,6 +35,10 @@ class Menu:
 
         self.caminho_deploy = tk.StringVar()
         self.caminho_deploy.set("")
+
+        self.progress_bar = ttk.Progressbar(
+            self.root, orient="horizontal", length=200, mode="indeterminate"
+        )
 
         self.create_menu()
 
@@ -74,12 +80,29 @@ class Menu:
         if self.deploy.project_path:
             self.button_deploy.config(state=tk.NORMAL)
 
-    def deploy_action(self):
-        print("Deploying...")
+    def deploy_in_background(self):
         self.deploy.set_base_path(self.environment_var.get())
         self.deploy.os = self.os_var.get()
         self.deploy.language = self.language_var.get()
         self.deploy.deploy()
+        self.on_deploy_finished()
+
+    def deploy_action(self):
+        deploy_thread = threading.Thread(target=self.deploy_in_background)
+        deploy_thread.start()
+        self.button_deploy.config(state=tk.DISABLED)
+        self.progress_bar.pack()
+        self.progress_bar.start()
+
+    def on_deploy_finished(self):
+        self.button_deploy.config(state=tk.NORMAL)
+        self.progress_bar.stop()
+        self.progress_bar.pack_forget()
+        # Label de sucesso
+        success_label = tk.Label(self.root, text="Deploy realizado com sucesso!")
+        success_label.pack()
+        time.sleep(7)
+        success_label.pack_forget()
 
     # Funções para criar os elementos da interface
     def create_select(self, container, label, values, options):
