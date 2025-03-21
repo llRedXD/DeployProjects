@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import ttk
 
 from deploy import Deploy
 
@@ -35,24 +36,8 @@ class Menu:
 
         self.create_menu()
 
-    def select_environment(self):
-        # Dropdown menu to choose environment
-        environment_menu = tk.OptionMenu(
-            self.root, self.environment_var, *self.environment_options
-        )
-        environment_menu.pack()
-
-    def select_os(self):
-        os_menu = tk.OptionMenu(self.root, self.os_var, *self.os_options)
-        os_menu.pack()
-
-    def select_language(self):
-        language_menu = tk.OptionMenu(
-            self.root, self.language_var, *self.language_options
-        )
-        language_menu.pack()
-
-    def open_folder_project(self):
+    # Funções para interagir com a interface
+    def select_project_directory(self):
         self.deploy.os = self.os_var.get()
         if self.deploy.os == "Windows":
             desktop_path = os.path.join(
@@ -73,7 +58,7 @@ class Menu:
 
         self.caminho_projeto.set(self.deploy.project_path)
 
-    def open_folder_deploy(self):
+    def select_deploy_folder(self):
         # Alimentar o objeto Deploy com as informações selecionadas
         self.deploy.set_base_path(self.environment_var.get())
         self.deploy.language = self.language_var.get()
@@ -96,38 +81,84 @@ class Menu:
         self.deploy.language = self.language_var.get()
         self.deploy.deploy()
 
-    def create_menu(self):
-        self.select_environment()
-        self.select_os()
-        self.select_language()
+    # Funções para criar os elementos da interface
+    def create_select(self, container, label, values, options):
+        # Label
+        label = ttk.Label(container, text=label)
+        label.pack(side=tk.LEFT)
 
+        # Campo de seleção
+        select = tk.OptionMenu(container, values, *options)
+        select["width"] = 20
+        select.pack(side=tk.LEFT)
+
+    def create_folder_selection(
+        self, label_text, variable, button_text, button_command
+    ):
+        # Botão para selecionar a pasta
+        button = tk.Button(self.root, text=button_text, command=button_command)
+        button.pack()
+
+        # Mostra o caminho da pasta selecionada
+        container_folder = self.create_frame()
         # Rótulo
-        label = tk.Label(self.root, text="Selecione uma pasta:")
-        label.pack()
+        label = tk.Label(container_folder, text=label_text)
+        label.pack(side=tk.LEFT)
 
         # Caminho projeto
-        caminho_projeto_label = tk.Label(self.root, textvariable=self.caminho_projeto)
-        caminho_projeto_label.pack()
+        path_label = tk.Label(container_folder, textvariable=variable)
+        path_label.pack(side=tk.LEFT)
 
-        button_projeto = tk.Button(
-            self.root, text="Abrir pasta", command=self.open_folder_project
-        )
-        button_projeto.pack()
-
-        # Caminho deploy
-        caminho_deploy_label = tk.Label(self.root, textvariable=self.caminho_deploy)
-        caminho_deploy_label.pack()
-
-        button_path_deploy = tk.Button(
-            self.root, text="Abrir pasta", command=self.open_folder_deploy
-        )
-        button_path_deploy.pack()
-
-        self.button_deploy = tk.Button(
-            self.root, text="Deploy", command=self.deploy_action
-        )
+    def create_button(self, text, command, disabled=False):
+        self.button_deploy = tk.Button(self.root, text=text, command=command)
         self.button_deploy.pack()
-        self.button_deploy.config(state=tk.DISABLED)
+        self.button_deploy.config(state=tk.DISABLED if disabled else tk.NORMAL)
+
+    def create_frame(self, height=200, width=200, padx=20, pady=10):
+        frame = tk.Frame(self.root, height=height, width=width)
+        frame.pack(padx=padx, pady=pady)
+        return frame
+
+    def create_menu(self):
+        # Campos de seleção
+        ambiente_container = self.create_frame()
+
+        self.create_select(
+            ambiente_container,
+            "Ambiente",
+            self.environment_var,
+            self.environment_options,
+        )
+
+        os_container = self.create_frame()
+
+        self.create_select(os_container, "OS", self.os_var, self.os_options)
+
+        language_container = self.create_frame()
+
+        self.create_select(
+            language_container,
+            "Linguagem",
+            self.language_var,
+            self.language_options,
+        )
+
+        # Call the function to create the folder selection
+        self.create_folder_selection(
+            "Pasta do Projeto:",
+            self.caminho_projeto,
+            "Selecionar pasta do projeto local",
+            self.select_project_directory,
+        )
+
+        self.create_folder_selection(
+            "Pasta para Deploy:",
+            self.caminho_deploy,
+            "Selecinar pasta para deploy no servidor",
+            self.select_deploy_folder,
+        )
+
+        self.create_button("Deploy", self.deploy_action, True)
 
         self.root.mainloop()
 
