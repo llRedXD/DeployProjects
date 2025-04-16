@@ -19,6 +19,7 @@ class Deploy:
         self.project_path = ""
         self.deploy_path = ""
         self.project = ""
+        self.dist_build = False
         self.exclude_dir = [
             ".venv",
             "venv",
@@ -31,9 +32,9 @@ class Deploy:
         ]
 
         self.exclude_file = [
+            ".env",
             "example.env",
             ".gitignore",
-            ".env",
             "README.md",
             "*.pyc",
             "*.sqlite3",
@@ -51,6 +52,8 @@ class Deploy:
     # React
     def create_build_react(self):
         try:
+            if self.dist_build:
+                return
             if self.os == "Linux":
                 path = self.temp_dir
 
@@ -73,6 +76,20 @@ class Deploy:
             print(f"Saída do erro: {e.stderr}")
         except Exception as e:
             print(f"Ocorreu um erro: {e}")
+
+    def verify_build_react(self):
+        try:
+            path = os.path.join(self.project_path, "dist")
+            if os.path.exists(path):
+                print("Build do React encontrado.")
+                self.dist_build = True
+                self.project_path = path
+                return True
+            else:
+                print("Build do React não encontrado.")
+                return False
+        except Exception as e:
+            print(f"Erro ao verificar o build do React: {e}")
 
     # C#
     def create_publish_csharp(self):
@@ -156,6 +173,9 @@ class Deploy:
         try:
             self.create_temp()
             print("Importando projeto para temp")
+            exclude_file = self.exclude_file
+            if self.language == "React":
+                self.verify_build_react()
             if self.os == "Windows":
                 if self.language == "React":
                     self.create_build_react()
@@ -172,7 +192,7 @@ class Deploy:
                     "/XD",
                     *self.exclude_dir,  # Excluir diretório
                     "/XF",
-                    *self.exclude_file,  # Excluir arquivo
+                    *exclude_file,
                 ],
                 check=True,
             )
@@ -191,6 +211,8 @@ class Deploy:
                 self.project = ""
 
             path_project_deploy = os.path.join(self.temp_dir, self.project)
+            if self.dist_build:
+                path_project_deploy = self.temp_dir
 
             subprocess.run(
                 [
